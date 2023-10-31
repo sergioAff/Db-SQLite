@@ -45,6 +45,8 @@ def crear(archivo):
                                 atributos.append(f'{nombreAtributo} {tipoDato} PRIMARY KEY')
                             elif autoincrement.lower() == 'si':
                                 atributos.append(f'{nombreAtributo} {tipoDato} PRIMARY KEY AUTOINCREMENT')
+                            else:
+                                continue
                         else:
                             atributos.append(f'{nombreAtributo} {tipoDato} PRIMARY KEY')
 
@@ -53,6 +55,8 @@ def crear(archivo):
                 elif esClavePrimaria.lower() == 'no':
                     atributos.append(f'{nombreAtributo} {tipoDato}')
                     break
+                else:
+                    continue
                 break
                 
         else:
@@ -71,8 +75,11 @@ def crear(archivo):
         if esClaveExterna.lower() == 'si':
             nombreTablaReferencia = simpledialog.askstring('Tabla de referencia', 'Introduce el nombre de la tabla de referencia:')
             nombreClaveReferencia = simpledialog.askstring('Columna de referencia', 'Introduce el nombre de la clave de referencia:')
-            cursor.execute(f'FOREIGN KEY ({nombreClaveReferencia}) REFERENCES {nombreTablaReferencia}({nombreClaveReferencia})')
-
+            try:
+                cursor.execute(f'FOREIGN KEY ({nombreClaveReferencia}) REFERENCES {nombreTablaReferencia}({nombreClaveReferencia})')
+            except Exception as e:
+                messagebox.showerror(str(e))
+                print(e)
         conn.commit()
     else:
         messagebox.showinfo('Aviso', "No se creó la tabla porque no se proporcionaron atributos.")
@@ -157,6 +164,7 @@ def borrar(archivo):
     ventana.mainloop()
 
 def abrir(frameMostrar,archivo):
+    
     for widget in frameMostrar.winfo_children():
         widget.destroy()
 
@@ -282,7 +290,7 @@ def actualizar(archivo):
                 id_registro = simpledialog.askstring("Borrar Valor de Campo", "Introduce el ID del registro al que pertenece el valor que quieres borrar: (Fila)")
                 if id_registro:
                     try:
-                        cursor.execute(f"UPDATE {nombre_tabla} SET {campo} = ? WHERE id = ?", (None, int(id_registro)))
+                        cursor.execute(f"UPDATE {nombre_tabla} SET {campo} = ? WHERE id = ?", (None, id_registro))
                         conn.commit()
                         messagebox.showinfo("Éxito", f"Valor del campo '{campo}' eliminado para el registro con ID {id_registro}.")
                     except Exception as e:
@@ -296,7 +304,7 @@ def actualizar(archivo):
                 id_registro = simpledialog.askstring("Cambiar Valor de Campo", "Introduce el ID del registro al que pertenece el valor que deseas cambiar:")
                 if id_registro:
                         # Solicita el nuevo valor para el campo
-                    nuevo_valor = simpledialog.askstring("Cambiar Valor de Campo", f"Introduce el nuevo valor para el campo '{campo}':")
+                    nuevo_valor = simpledialog.askstring("Cambiar Valor de Campo", "Introduce el nuevo valor para el campo:")
                     if nuevo_valor is not None:
                         try:
                                 # Actualiza el valor en la base de datos
@@ -305,7 +313,8 @@ def actualizar(archivo):
                             messagebox.showinfo("Éxito", f"Valor del campo '{campo}' actualizado para el registro con ID {id_registro}.")
                         except Exception as e:
                             messagebox.showerror("Error", str(e))
-
+                    else:
+                        messagebox.showerror('Alerta','No se introdujo nigun valor')
         elif accion == "5":
             campo = simpledialog.askstring("Añadir Valor de Campo", "Introduce el nombre del atributo donde se quiere añadir el valor:")
             if campo:
@@ -350,8 +359,12 @@ def actualizar(archivo):
             
                 placeholders = ', '.join(['?' for _ in atributos])
                 query = f"INSERT INTO {nombre_tabla} ({', '.join(atributos)}) VALUES ({placeholders})"
-                cursor.execute(query, valores)
-                conn.commit()
+                try:
+                    cursor.execute(query, valores)
+                    conn.commit()
+                except sql.IntegrityError as e:
+                    messagebox.showerror('Alerta','Introdujo algun tipo de dato erroneo')
+                    print(e)
                 messagebox.showinfo("Éxito", "Registro agregado correctamente.")
             else:
                 messagebox.showerror("Error", "No se proporcionaron valores para todos los atributos.")
